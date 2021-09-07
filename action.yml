@@ -1,0 +1,27 @@
+name: 'Semantic Versioning'
+description: 'Detect semantic version out of tag, branch and commit information'
+author: 'Mitigram'
+
+outputs:
+  semver:
+    description: "Semantic Version"
+    value: ${{ steps.semver.outputs.semver }}
+  version:
+    description: "Version number: major.minor.patch"
+    value: ${{ steps.semver.outputs.version }}
+  branch:
+    description: "Git branch"
+    value: ${{ steps.semver.outputs.git-branch }}
+  branch-short:
+    description: "Git branch (basename)"
+    value: ${{ steps.semver.outputs.git-branch-shortname }}
+  tag:
+    description: "Current relevant git tag"
+    value: ${{ steps.semver.outputs.tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - run: ${{ github.action_path }}/semver.sh "${{ github.ref }}"
+      id: semver
+      shell: bash
