@@ -33,7 +33,9 @@ shift $((OPTIND-1))
 
 
 _verbose() {
-  [ "$SEMVER_VERBOSE" = "1" ] && printf %s\\n "$1" >&2 || true
+  if [ "$SEMVER_VERBOSE" = "1" ]; then
+    printf %s\\n "$1" >&2
+  fi
 }
 
 _error() {
@@ -42,12 +44,17 @@ _error() {
 }
 
 _export() {
+  # shellcheck disable=SC3043 # local is implemented in almost all shells
+  local varname value id
+
   for varname in "$@"; do
+    value=$(set | grep -E "^${varname}=" | sed -E "s/^${varname}='([^']+)'/\1/")
     if [ -z "${GITHUB_ENV:-}" ]; then
-      printf "%s=%s\n" "$varname" "$(set | grep -E "^${varname}=" | sed -E "s/^${varname}='([^']+)'/\1/")"
+      printf "%s=%s\n" "$varname" "$value"
     else
       id=$(printf %s\\n "$varname" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')
-      printf "::set-output name=%s::%s\n" "$id" "$(set | grep -E "^${varname}=" | sed -E "s/^${varname}='([^']+)'/\1/")" >> "$GITHUB_ENV"
+      _verbose "Setting GitHub Action output $id to: $value"
+      printf "::set-output name=%s::%s\n" "$id" "$value"
     fi
   done
 }
