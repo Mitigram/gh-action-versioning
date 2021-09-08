@@ -65,7 +65,7 @@ _fromtag() {
                         rev |
                         cut -c 10- |
                         rev || true)
-    LEVEL=$(printf %s\\n "$levelled_version" | sed -E 's/-([0-9]+)$/\1/')
+    LEVEL=$(printf %s\\n "$levelled_version" | grep -Eo -e '-[0-9]+$' | sed -E 's/^-//')
     TAG=$(printf %s\\n "$levelled_version" | sed -E 's/-[0-9]+$//')
   else
     LEVEL=0
@@ -80,14 +80,10 @@ elif printf %s\\n "$1" | grep -Eq '^refs/heads/'; then
   GIT_BRANCH=$(printf %s\\n "$1" | sed -E 's~^refs/heads/~~')
   _fromtag
 elif printf %s\\n "$1" | grep -Eq '^refs/tags/'; then
-  if git branch --list | grep -q "main"; then
-    GIT_BRANCH=main
-  elif git branch --list | grep -q "master"; then
-    GIT_BRANCH=master
-  else
-    GIT_BRANCH=$(git branch --show-current)
-  fi
   TAG=$(printf %s\\n "$1" | sed -E 's~^refs/tags/~~')
+  # Ask git which (remote) branches the TAG (a commit) belongs to and keep the
+  # first one only.
+  GIT_BRANCH=$(git branch -a -r --contains "$TAG" | head -n 1 | sed -E 's~\s*origin/~~')
   LEVEL=0
 fi
 
