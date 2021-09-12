@@ -98,7 +98,11 @@ _fromtag() {
     LEVEL=$(printf %s\\n "$levelled_version" | grep -Eo -e '-[0-9]+$' | sed -E 's/^-//')
     TAG=$(printf %s\\n "$levelled_version" | sed -E 's/-[0-9]+$//')
   else
-    LEVEL=0
+    # We don't even have a tag yet. This is fine, let's tag with 0.0.0 (the very
+    # first semver of all!) and use the number of commits in the log as the
+    # level. This is as good as it can be and will do until we have started
+    # making releases.
+    LEVEL=$(git log | grep -Ec '^commit [0-9a-f]+')
     TAG=0.0.0
   fi
 }
@@ -146,7 +150,20 @@ NEXT=$(( PATCH + 1 ))
 # branch name, is only used by default, permitting callers to provide a specific
 # prerelease marker through the command-line, e.g. "preview".
 if [ "$LEVEL" = "0" ]; then
-  SEMVER="${MAJOR}.${MINOR}.${PATCH}"
+  # When level is 0 and tag 0.0.0, we have no tag to refer to, meaning we are in
+  # a project that still hasn't released anything. Let's consider this as a
+  # regular pre-release.
+  if [ "$TAG" = "0.0.0" ]; then
+    if [ -z "$SEMVER_PRERELEASE" ]; then
+      SEMVER="${MAJOR}.${MINOR}.${NEXT}-${BRANCH_SHORTNAME}.${LEVEL}"
+    else
+      SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
+    fi
+  else
+    # When we had a tag, we are making a release, so the semantic version should
+    # be "sharp"
+    SEMVER="${MAJOR}.${MINOR}.${PATCH}"
+  fi
 elif [ -z "$SEMVER_PRERELEASE" ]; then
   SEMVER="${MAJOR}.${MINOR}.${NEXT}-${BRANCH_SHORTNAME}.${LEVEL}"
 else
