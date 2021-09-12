@@ -2,6 +2,16 @@ name: 'Semantic Versioning'
 description: 'Detect semantic version out of tag, branch and commit information'
 author: 'Mitigram'
 
+inputs:
+  prerelease:
+    description: "Label to use for pre-release tags (will override branch information)"
+    default: ""
+    required: false
+  options:
+    description: 'Additional options to semver, -v to print out path of found binaries'
+    required: false
+    default: ""
+
 outputs:
   semver:
     description: "Semantic Version"
@@ -11,17 +21,23 @@ outputs:
     value: ${{ steps.semver.outputs.version }}
   branch:
     description: "Git branch"
-    value: ${{ steps.semver.outputs.git-branch }}
+    value: ${{ steps.semver.outputs.branch }}
   branch-short:
-    description: "Git branch (basename)"
-    value: ${{ steps.semver.outputs.git-branch-shortname }}
+    description: "Git branch (basename, i.e. everything after trailing slash)"
+    value: ${{ steps.semver.outputs.branch-shortname }}
   tag:
     description: "Current relevant git tag"
     value: ${{ steps.semver.outputs.tag }}
+  commit-sha:
+    description: "Full git commit revision"
+    value: ${{ steps.semver.outputs.commit-sha }}
+  commit-short-sha:
+    description: "Short git commit revision"
+    value: ${{ steps.semver.outputs.commit-short-sha }}
 
 runs:
   using: "composite"
   steps:
-    - run: ${{ github.action_path }}/semver.sh "${{ github.ref }}"
+    - run: ${{ github.action_path }}/semver.sh -p '${{ inputs.prerelease }}' ${{ inputs.options }} -- '${{ github.ref }}'
       id: semver
       shell: bash
