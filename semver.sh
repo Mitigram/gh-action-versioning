@@ -81,7 +81,7 @@ _export() {
       printf "::set-output name=%s::%s\n" "$id" "$value"
       # When running at github, also export an environment variable prefixed by
       # the namespacing prefix when it is non-empty.
-      if [ -z "$GITHUB_ENV" ] && [ -n "$SEMVER_NAMESPACE" ]; then
+      if [ -n "$GITHUB_ENV" ] && [ -n "$SEMVER_NAMESPACE" ]; then
         _verbose "Exporting ${SEMVER_NAMESPACE%%_*}_$varname to workflow environment"
         printf "%s_%s=%s\n" "${SEMVER_NAMESPACE%%_*}" "$varname" "$value" >> "$GITHUB_ENV"
       fi
