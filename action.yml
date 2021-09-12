@@ -27,8 +27,8 @@ outputs:
     description: "Git branch"
     value: ${{ steps.semver.outputs.branch }}
   branch-short:
-    description: "Git branch (basename, i.e. everything after trailing slash)"
-    value: ${{ steps.semver.outputs.branch-shortname }}
+    description: "Git branch short name, i.e. everything after trailing slash"
+    value: ${{ steps.semver.outputs.branch-short }}
   tag:
     description: "Current relevant git tag"
     value: ${{ steps.semver.outputs.tag }}
