@@ -1,0 +1,14 @@
+name: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: action/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: semver
+        uses: ./
+        with:
+          options: -v
