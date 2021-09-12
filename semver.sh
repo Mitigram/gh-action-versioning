@@ -128,7 +128,7 @@ COMMIT_SHORT_SHA=$(git show -s --format=%h)
 # The short name for the branch is everything after the last "slash", this
 # facilitate giving good pre-release version names when being on feature or user
 # branches, e.g. feature/my-feature or users/emmanuel/my-feature.
-BRANCH_SHORTNAME=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
+BRANCH_SHORT=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
 
 # Extract something that would look like major.minor.patch from the tag (which
 # allows to have tags with v1.2.3 for example), being laxist around minor and
@@ -140,6 +140,13 @@ PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 
 
 # Next semantic version will have an increase on patch number
 NEXT=$(( PATCH + 1 ))
+
+# Extract the prerelease identifier out of the short branch name, all according
+# to the BNF for per-release identifiers, see:
+# https://semver.org/spec/v2.0.0.html#backusnaur-form-grammar-for-valid-semver-versions
+if [ -z "$SEMVER_PRERELEASE" ]; then
+  SEMVER_PRERELEASE=$(printf %s\\n "$BRANCH_SHORT" | tr -dc '0-9a-zA-Z-')
+fi
 
 # Generate a semantic version number that tells us where we are: When exactly at
 # a tag, this will be the exact version contained in the tag, without any
@@ -154,20 +161,14 @@ if [ "$LEVEL" = "0" ]; then
   # a project that still hasn't released anything. Let's consider this as a
   # regular pre-release.
   if [ "$TAG" = "0.0.0" ]; then
-    if [ -z "$SEMVER_PRERELEASE" ]; then
-      SEMVER="${MAJOR}.${MINOR}.${NEXT}-${BRANCH_SHORTNAME}.${LEVEL}"
-    else
-      SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
-    fi
+    SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
   else
     # When we had a tag, we are making a release, so the semantic version should
     # be "sharp"
     SEMVER="${MAJOR}.${MINOR}.${PATCH}"
   fi
-elif [ -z "$SEMVER_PRERELEASE" ]; then
-  SEMVER="${MAJOR}.${MINOR}.${NEXT}-${BRANCH_SHORTNAME}.${LEVEL}"
 else
   SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
 fi
 
-_export SEMVER VERSION TAG BRANCH BRANCH_SHORTNAME COMMIT_SHA COMMIT_SHORT_SHA
+_export SEMVER VERSION TAG BRANCH BRANCH_SHORT COMMIT_SHA COMMIT_SHORT_SHA
