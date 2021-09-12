@@ -49,9 +49,16 @@ _export() {
 
   for varname in "$@"; do
     value=$(set | grep -E "^${varname}=" | sed -E "s/^${varname}='([^']+)'/\1/")
-    if [ -z "${GITHUB_ENV:-}" ]; then
+    # Detect if we are part of a workflow run (we use the presence of the CI
+    # variable as a marker), and either print out VAR=VALUE or a
+    # GitHub-compatible function for setting output. Note about the CI variable:
+    # we use the CI variable as it exists both in github and gitlab, making this
+    # script able to run in both environments.
+    if [ -z "${CI:-}" ]; then
       printf "%s=%s\n" "$varname" "$value"
     else
+      # convert the name of the variable to lower case, replacing underscore
+      # with dashes.
       id=$(printf %s\\n "$varname" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')
       _verbose "Setting GitHub Action output $id to: $value"
       printf "::set-output name=%s::%s\n" "$id" "$value"
@@ -73,29 +80,54 @@ _fromtag() {
   fi
 }
 
+# Extract which branch we are on, the nearest git tag and how far we are from it
+# in terms of commits. Also extract git commit info
 if [ "$#" -lt "1" ]; then
-  GIT_BRANCH=$(git branch --show-current)
+  BRANCH=$(git branch --show-current)
   _fromtag
 elif printf %s\\n "$1" | grep -Eq '^refs/heads/'; then
-  GIT_BRANCH=$(printf %s\\n "$1" | sed -E 's~^refs/heads/~~')
+  BRANCH=$(printf %s\\n "$1" | sed -E 's~^refs/heads/~~')
   _fromtag
 elif printf %s\\n "$1" | grep -Eq '^refs/tags/'; then
   TAG=$(printf %s\\n "$1" | sed -E 's~^refs/tags/~~')
   # Ask git which (remote) branches the TAG (a commit) belongs to and keep the
   # first one only.
-  GIT_BRANCH=$(git branch -a -r --contains "$TAG" | head -n 1 | sed -E 's~\s*origin/~~')
+  BRANCH=$(git branch -a -r --contains "$TAG" | head -n 1 | sed -E 's~\s*origin/~~')
   LEVEL=0
 fi
+COMMIT_SHA=$(git show -s --format=%H)
+COMMIT_SHORT_SHA=$(git show -s --format=%h)
 
-GIT_BRANCH_SHORTNAME=$(printf %s\\n "$GIT_BRANCH" | sed 's~/~\n~g' | tail -n 1)
-VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9+]\.[0-9+]\.[0-9+]')
+# The short name for the branch is everything after the last "slash", this
+# facilitate giving good pre-release version names when being on feature or user
+# branches, e.g. feature/my-feature or users/emmanuel/my-feature.
+BRANCH_SHORTNAME=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
 
+# Extract something that would look like major.minor.patch from the tag (which
+# allows to have tags with v1.2.3 for example), being laxist around minor and
+# patch. Then extract the major, minor and patch values (defaulting to zeroes)
+VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
+MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
+MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
+PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
+
+# Next semantic version will have an increase on patch number
+NEXT=$(( PATCH + 1 ))
+
+# Generate a semantic version number that tells us where we are: When exactly at
+# a tag, this will be the exact version contained in the tag, without any
+# leading v. Otherwise, the semantic version has a patch number +1:ed from the
+# one contained in the nearest tag (as this is what we are heading to) and uses
+# the pre-release part of the semver spect to express the feature we are working
+# on, and how far we are from the tag. The name of the feature, coming from the
+# branch name, is only used by default, permitting callers to provide a specific
+# prerelease marker through the command-line, e.g. "preview".
 if [ "$LEVEL" = "0" ]; then
-  SEMVER="$VERSION"
+  SEMVER="${MAJOR}.${MINOR}.${PATCH}"
 elif [ -z "$SEMVER_PRERELEASE" ]; then
-  SEMVER="${VERSION}-${GIT_BRANCH_SHORTNAME}.${LEVEL}"
+  SEMVER="${MAJOR}.${MINOR}.${NEXT}-${BRANCH_SHORTNAME}.${LEVEL}"
 else
-  SEMVER="${VERSION}-${SEMVER_PRERELEASE}.${LEVEL}"
+  SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
 fi
 
-_export SEMVER VERSION TAG GIT_BRANCH GIT_BRANCH_SHORTNAME
+_export SEMVER VERSION TAG BRANCH BRANCH_SHORTNAME COMMIT_SHA COMMIT_SHORT_SHA
