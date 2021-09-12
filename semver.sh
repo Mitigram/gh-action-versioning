@@ -28,9 +28,9 @@ while getopts "p:x:vh-" opt; do
   case "$opt" in
     v) # Turn on verbosity
       SEMVER_VERBOSE=1;;
-    p) # Pre-release marker to use, default to shortname of branch
+    p) # Pre-release marker to use, default to shortname of git branch
       SEMVER_PRERELEASE=$OPTARG;;
-    x) # Prefix to add when exporting variables (empty by default: no export)
+    x) # Prefix to add when exporting variables to GitHub environment (empty by default: no export)
       SEMVER_NAMESPACE=$OPTARG;;
     h) # Print help and exit
       usage;;
