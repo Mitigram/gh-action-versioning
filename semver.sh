@@ -2,8 +2,17 @@
 
 set -eu
 
+# Set this to 1 for more verbosity (on stderr)
 SEMVER_VERBOSE=${SEMVER_VERBOSE:-0}
+
+# When this is non-empty, it will contain the label to use for all semver
+# pre-releases. The default is to have it empty, meaning that the label will be
+# meaningfullt picked from the git branch name.
 SEMVER_PRERELEASE=${SEMVER_PRERELEASE:-}
+
+# When this is non-empty, a series of environment variables led by this prefix
+# (followed by an underscore) will be setup in the GitHub environment.
+SEMVER_NAMESPACE=${SEMVER_NAMESPACE:-}
 
 usage() {
   # This uses the comments behind the options to show the help. Not extremly
@@ -15,12 +24,14 @@ usage() {
   exit "${1:-0}"
 }
 
-while getopts "p:vh-" opt; do
+while getopts "p:x:vh-" opt; do
   case "$opt" in
     v) # Turn on verbosity
       SEMVER_VERBOSE=1;;
     p) # Pre-release marker to use, default to shortname of branch
       SEMVER_PRERELEASE=$OPTARG;;
+    x) # Prefix to add when exporting variables (empty by default: no export)
+      SEMVER_NAMESPACE=$OPTARG;;
     h) # Print help and exit
       usage;;
     -)
@@ -51,17 +62,29 @@ _export() {
     value=$(set | grep -E "^${varname}=" | sed -E "s/^${varname}='([^']+)'/\1/")
     # Detect if we are part of a workflow run (we use the presence of the CI
     # variable as a marker), and either print out VAR=VALUE or a
-    # GitHub-compatible function for setting output. Note about the CI variable:
-    # we use the CI variable as it exists both in github and gitlab, making this
-    # script able to run in both environments.
+    # GitHub-compatible function for setting output. When a namespacing prefix
+    # has been set, environment variables will also be exported to the github
+    # environment. Note about the CI variable: we use the CI variable as it
+    # exists both in github and gitlab, making this script able to run in both
+    # environments.
     if [ -z "${CI:-}" ]; then
-      printf "%s=%s\n" "$varname" "$value"
+      if [ -n "$SEMVER_NAMESPACE" ]; then
+        printf "%s_%s=%s\n" "${SEMVER_NAMESPACE%%_*}" "$varname" "$value"
+      else
+        printf "%s=%s\n" "$varname" "$value"
+      fi
     else
       # convert the name of the variable to lower case, replacing underscore
-      # with dashes.
+      # with dashes and print out a GitHub function for setting the output.
       id=$(printf %s\\n "$varname" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')
       _verbose "Setting GitHub Action output $id to: $value"
       printf "::set-output name=%s::%s\n" "$id" "$value"
+      # When running at github, also export an environment variable prefixed by
+      # the namespacing prefix when it is non-empty.
+      if [ -z "$GITHUB_ENV" ] && [ -n "$SEMVER_NAMESPACE" ]; then
+        _verbose "Exporting ${SEMVER_NAMESPACE%%_*}_$varname to workflow environment"
+        printf "%s_%s=%s\n" "${SEMVER_NAMESPACE%%_*}" "$varname" "$value" >> "$GITHUB_ENV"
+      fi
     fi
   done
 }

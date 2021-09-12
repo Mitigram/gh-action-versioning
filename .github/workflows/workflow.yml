@@ -20,3 +20,6 @@ jobs:
         uses: ./
         with:
           options: -v
+      - name: Print semver environment
+        shell: bash
+        run: env | grep -E '^CI'

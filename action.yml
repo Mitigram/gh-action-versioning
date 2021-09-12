@@ -7,6 +7,10 @@ inputs:
     description: "Label to use for pre-release tags (will override branch information)"
     default: ""
     required: false
+  namespace:
+    description: "Namespacing prefix for environment variables, empty to disable"
+    default: "CI"
+    required: false
   options:
     description: 'Additional options to semver, -v to print out path of found binaries'
     required: false
@@ -38,6 +42,12 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - run: ${{ github.action_path }}/semver.sh -p '${{ inputs.prerelease }}' ${{ inputs.options }} -- '${{ github.ref }}'
+    - run: |
+        ${{ github.action_path }}/semver.sh \
+          -p '${{ inputs.prerelease }}' \
+          -x '${{ inputs.namespace }}' \
+          ${{ inputs.options }} \
+          -- \
+            '${{ github.ref }}'
       id: semver
       shell: bash
