@@ -91,7 +91,7 @@ _export() {
 
 _fromtag() {
   if git describe --tags >/dev/null 2>&1; then
-    levelled_version=$(git describe --tags --abbrev=7 |
+    levelled_version=$(git describe --tags --long --abbrev=7 |
                         rev |
                         cut -c 10- |
                         rev || true)
@@ -134,9 +134,9 @@ BRANCH_SHORT=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
 # allows to have tags with v1.2.3 for example), being laxist around minor and
 # patch. Then extract the major, minor and patch values (defaulting to zeroes)
 VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
-MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
-MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
-PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
+MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
+MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
+PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
 
 # Next semantic version will have an increase on patch number
 NEXT=$(( PATCH + 1 ))
