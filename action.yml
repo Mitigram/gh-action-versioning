@@ -4,17 +4,28 @@ author: 'Mitigram'
 
 inputs:
   prerelease:
-    description: "Label to use for pre-release tags (will override branch information)"
+    description: |
+      Label to use for pre-release tags (will override branch information)
     default: ""
     required: false
   namespace:
-    description: "Namespacing prefix for environment variables, empty to disable"
+    description: |
+      Namespacing prefix for environment variables, empty to disable
     default: "CI"
     required: false
   options:
-    description: 'Additional options to semver, -v to print out path of found binaries'
+    description: |
+      Additional options to semver, -v to print out path of found binaries
     required: false
     default: ""
+  tags:
+    description: |
+      Regular expression matching the tags that semver computation should
+      consider as versioning tags. The default is a possibe letter v, possibly
+      followed by some spaces, followed by a dotted version number with at least
+      a major version number.
+    required: false
+    default: '^v?[[:space:]]*[0-9]+(\.[0-9]+(\.[0-9]+)?)?'
 
 outputs:
   semver:
@@ -46,6 +57,7 @@ runs:
         ${{ github.action_path }}/semver.sh \
           -p '${{ inputs.prerelease }}' \
           -x '${{ inputs.namespace }}' \
+          -t '${{ inputs.tags }}' \
           ${{ inputs.options }} \
           -- \
             '${{ github.ref }}'

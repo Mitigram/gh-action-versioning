@@ -14,6 +14,11 @@ SEMVER_PRERELEASE=${SEMVER_PRERELEASE:-}
 # (followed by an underscore) will be setup in the GitHub environment.
 SEMVER_NAMESPACE=${SEMVER_NAMESPACE:-}
 
+# Tags that we should consider are the ones containing version numbers to
+# account for. There must be AT LEAST a number for the entire semver compute to
+# work.
+SEMVER_TAGS=${SEMVER_TAGS:-'^v?[[:space:]]*[0-9]+(\.[0-9]+(\.[0-9]+)?)?'}
+
 usage() {
   # This uses the comments behind the options to show the help. Not extremly
   # correct, but effective and simple.
@@ -24,7 +29,7 @@ usage() {
   exit "${1:-0}"
 }
 
-while getopts "p:x:vh-" opt; do
+while getopts "p:x:t:vh-" opt; do
   case "$opt" in
     v) # Turn on verbosity
       SEMVER_VERBOSE=1;;
@@ -32,6 +37,8 @@ while getopts "p:x:vh-" opt; do
       SEMVER_PRERELEASE=$OPTARG;;
     x) # Prefix to add when exporting variables to GitHub environment (empty by default: no export)
       SEMVER_NAMESPACE=$OPTARG;;
+    t) # Tags to consider as version tags, must at least contain a number (defaults to a possible v and a version number)
+      SEMVER_TAGS=$OPTARG;;
     h) # Print help and exit
       usage;;
     -)
@@ -89,26 +96,25 @@ _export() {
   done
 }
 
+# Extract the semantically correct closest tag (closest as in creation time),
+# and how far we are from the tag. Only tags matching the SEMVER_TAGS regular
+# expression will be considered.
 _fromtag() {
-  if git describe --tags >/dev/null 2>&1; then
-    levelled_version=$(git describe --tags --long --abbrev=7 |
-                        rev |
-                        cut -c 10- |
-                        rev || true)
-    LEVEL=$(printf %s\\n "$levelled_version" | grep -Eo -e '-[0-9]+$' | sed -E 's/^-//')
-    TAG=$(printf %s\\n "$levelled_version" | sed -E 's/-[0-9]+$//')
-  else
-    # We don't even have a tag yet. This is fine, let's tag with 0.0.0 (the very
-    # first semver of all!) and use the number of commits in the log as the
-    # level. This is as good as it can be and will do until we have started
-    # making releases.
-    LEVEL=$(git log | grep -Ec '^commit [0-9a-f]+')
+  TAG=$(  git tag -l --sort=-creatordate --format='%(refname:short)' |
+          grep -E "$SEMVER_TAGS" |
+          head -n 1)
+  if [ -z "$TAG" ]; then
     TAG=0.0.0
+    LEVEL=$(git log --format=oneline | wc -l)
+  else
+    LEVEL=$(git log --format=oneline "${TAG}..HEAD" | wc -l)
   fi
 }
 
-# Extract which branch we are on, the nearest git tag and how far we are from it
-# in terms of commits. Also extract git commit info
+
+# Extract which branch we are on, the nearest git tag than matches the version
+# numbers that we are expecting and how far we are from it in terms of commits.
+# Also extract git commit info
 if [ "$#" -lt "1" ]; then
   BRANCH=$(git branch --show-current)
   _fromtag
@@ -120,9 +126,11 @@ elif printf %s\\n "$1" | grep -Eq '^refs/tags/'; then
   # Ask git which (remote) branches the TAG (a commit) belongs to and keep the
   # first one only.
   BRANCH=$(git branch -a -r --contains "$TAG" | head -n 1 | sed -E 's~\s*origin/~~')
-  LEVEL=0
+  _fromtag
 fi
+# shellcheck disable=SC2034 # Used when _export'ing
 COMMIT_SHA=$(git show -s --format=%H)
+# shellcheck disable=SC2034 # Used when _export'ing
 COMMIT_SHORT_SHA=$(git show -s --format=%h)
 
 # The short name for the branch is everything after the last "slash", this
@@ -134,9 +142,9 @@ BRANCH_SHORT=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
 # allows to have tags with v1.2.3 for example), being laxist around minor and
 # patch. Then extract the major, minor and patch values (defaulting to zeroes)
 VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
-MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
-MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
-PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
+MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
+MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
+PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
 
 # Next semantic version will have an increase on patch number
 NEXT=$(( PATCH + 1 ))
@@ -168,6 +176,7 @@ if [ "$LEVEL" = "0" ]; then
     SEMVER="${MAJOR}.${MINOR}.${PATCH}"
   fi
 else
+  # shellcheck disable=SC2034 # Used when _export'ing
   SEMVER="${MAJOR}.${MINOR}.${NEXT}-${SEMVER_PRERELEASE}.${LEVEL}"
 fi
 
