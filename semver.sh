@@ -7,7 +7,7 @@ SEMVER_VERBOSE=${SEMVER_VERBOSE:-0}
 
 # When this is non-empty, it will contain the label to use for all semver
 # pre-releases. The default is to have it empty, meaning that the label will be
-# meaningfullt picked from the git branch name.
+# meaningfully picked from the git branch name.
 SEMVER_PRERELEASE=${SEMVER_PRERELEASE:-}
 
 # When this is non-empty, a series of environment variables led by this prefix
@@ -126,6 +126,9 @@ elif printf %s\\n "$1" | grep -Eq '^refs/tags/'; then
   # Ask git which (remote) branches the TAG (a commit) belongs to and keep the
   # first one only.
   BRANCH=$(git branch -a -r --contains "$TAG" | head -n 1 | sed -E 's~\s*origin/~~')
+  _fromtag
+elif printf %s\\n "$1" | grep -Eq '^refs/pull/'; then
+  BRANCH=$(printf %s\\n "$1" | sed -E 's~refs/pull/([0-9]+)/.*~pull-\1~')
   _fromtag
 fi
 # shellcheck disable=SC2034 # Used when _export'ing
