@@ -25,4 +25,4 @@ jobs:
         run: env | grep -E '^CI'
       - name: Print outputs.semver
         run: |
-          echo "The semver value: ${{ steps.semver.outputs.semver }}"
+          echo "The semver value: ${{ env.semver }}"
