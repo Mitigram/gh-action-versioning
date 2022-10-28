@@ -23,6 +23,3 @@ jobs:
       - name: Print semver environment
         shell: bash
         run: env | grep -E '^CI'
-      - name: Print outputs.semver
-        run: |
-          echo "The semver value: ${{ env.semver }}"
