@@ -82,10 +82,10 @@ _export() {
       fi
     else
       # convert the name of the variable to lower case, replacing underscore
-      # with dashes and print out a GitHub function for setting the output.
+      # with dashes and export a GitHub environment variable for setting the output.
       id=$(printf %s\\n "$varname" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')
       _verbose "Setting GitHub Action output $id to: $value"
-      printf "::set-output name=%s::%s\n" "$id" "$value"
+      printf "%s=%s\n" "$id" "$value" >> "$GITHUB_ENV"
       # When running at github, also export an environment variable prefixed by
       # the namespacing prefix when it is non-empty.
       if [ -n "$GITHUB_ENV" ] && [ -n "$SEMVER_NAMESPACE" ]; then
