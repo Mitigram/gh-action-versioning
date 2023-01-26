@@ -144,13 +144,21 @@ BRANCH_SHORT=$(printf %s\\n "$BRANCH" | sed 's~/~\n~g' | tail -n 1)
 # Extract something that would look like major.minor.patch from the tag (which
 # allows to have tags with v1.2.3 for example), being laxist around minor and
 # patch. Then extract the major, minor and patch values (defaulting to zeroes)
-VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
+# Using tag fix to remove everything after "-". This is because TAGs with i.e. 6.3.18-instrumentpipeline-v1 would fail since the last 1 would be added to the variable as a new line
+echo "TAG: $TAG"
+TAG_FIX=$(echo $TAG | cut -f1 -d "-")
+echo "TAG_FIX: $TAG_FIX"
+VERSION=$(printf %s\\n "$TAG_FIX" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
 MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
 MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
 PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
-
-# Next semantic version will have an increase on patch number
+echo "Version: $VERSION"
+echo "Major-version: $MAJOR"
+echo "Minor-version: $MINOR"
+echo "Patch-version: $PATCH"
+# Next semantic version will have an increase on patch number.
 NEXT=$(( PATCH + 1 ))
+echo "Next Patch version: $NEXT"
 
 # Extract the prerelease identifier out of the short branch name, all according
 # to the BNF for per-release identifiers, see:
