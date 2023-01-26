@@ -152,8 +152,8 @@ echo "Value of VERSION: $VERSION"
 echo "Value of MAJOR: $MAJOR"
 echo "Value of MINOR: $MINOR"
 echo "Value of PATCH: $PATCH"
-# Next semantic version will have an increase on patch number
-NEXT=$((PATCH + 1))
+# Next semantic version will have an increase on patch number. Strip leading zero to prevent illegal number issues
+NEXT=$((${PATCH#0} + 1))
 echo "Value of Next: $NEXT"
 
 # Extract the prerelease identifier out of the short branch name, all according
