@@ -149,9 +149,13 @@ MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -
 MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
 PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
 echo "Value of VERSION: $VERSION"
+echo "-x-"
 echo "Value of MAJOR: $MAJOR"
+echo "--x-"
 echo "Value of MINOR: $MINOR"
+echo "---x-"
 echo "Value of PATCH: $PATCH"
+echo "----x-"
 # Next semantic version will have an increase on patch number. Strip leading zero to prevent illegal number issues
 NEXT=$((${PATCH#0} + 1))
 echo "Value of Next: $NEXT"
