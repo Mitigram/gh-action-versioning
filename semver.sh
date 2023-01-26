@@ -148,9 +148,13 @@ VERSION=$(printf %s\\n "$TAG" | grep -Eo '[0-9]+(\.[0-9]+(\.[0-9]+)?)?')
 MAJOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\1/')
 MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\2/')
 PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
-
+echo "Value of VERSION: $VERSION"
+echo "Value of MAJOR: $MAJOR"
+echo "Value of MINOR: $MINOR"
+echo "Value of PATCH: $PATCH"
 # Next semantic version will have an increase on patch number
-NEXT=$(( $PATCH + 1 ))
+NEXT=$((PATCH + 1))
+echo "Value of Next: $NEXT"
 
 # Extract the prerelease identifier out of the short branch name, all according
 # to the BNF for per-release identifiers, see:
