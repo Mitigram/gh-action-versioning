@@ -150,7 +150,7 @@ MINOR=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -
 PATCH=$(printf %s.0.0\\n "$VERSION" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+' | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
 
 # Next semantic version will have an increase on patch number
-NEXT=$(( PATCH + 1 ))
+NEXT=$(( $PATCH + 1 ))
 
 # Extract the prerelease identifier out of the short branch name, all according
 # to the BNF for per-release identifiers, see:
